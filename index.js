@@ -51,22 +51,22 @@ async function run() {
     app.get("/appointmentOption", async (req, res) => {
       const query = {};
       const date = req.query.date;
- 
+
       const options = await appointmentOptionCollection.find(query).toArray();
- 
+
       // get the bookings of the provided date
       const bookingQuery = { appointmentDate: date };
       const alreadyBooked = await bookingsCollection
         .find(bookingQuery)
         .toArray();
- 
+
       // code carefully :D
       options.forEach((option) => {
         const optionBooked = alreadyBooked.filter(
           (book) => book.treatment === option.name
         );
         const bookedSlots = optionBooked.map((book) => book.slot);
- 
+
         const remainingSlots = option.slots.filter(
           (slot) => !bookedSlots.includes(slot)
         );
@@ -78,7 +78,7 @@ async function run() {
       const decodedEmail = req.decoded.email;
       const query = { email: decodedEmail };
       const user = await usersCollection.findOne(query);
- 
+
       if (user?.role !== "admin") {
         return res.status(403).send({ message: "forbidden access" });
       }
@@ -87,11 +87,11 @@ async function run() {
     app.get("/bookings", verifyJWT, async (req, res) => {
       const email = req.query.email;
       const decodedEmail = req.decoded.email;
- 
+
       if (email !== decodedEmail) {
         return res.status(403).send({ message: "forbidden access" });
       }
- 
+
       const query = { email: email };
       const bookings = await bookingsCollection.find(query).toArray();
       res.send(bookings);
@@ -103,22 +103,27 @@ async function run() {
         email: booking.email,
         treatment: booking.treatment,
       };
- 
+
       const alreadyBooked = await bookingsCollection.find(query).toArray();
- 
+
       if (alreadyBooked.length) {
         const message = `You already have a booking on ${booking.appointmentDate}`;
         return res.send({ acknowledged: false, message });
       }
- 
+
       const result = await bookingsCollection.insertOne(booking);
       res.send(result);
+    });
+
+    app.get("/bookings/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: ObjectId(id) };
+      const booking = await bookingsCollection.findOne(query);
+      res.send(booking);
     });
   } finally {
   }
 }
-
-
 
 app.get("/", (req, res) => {
   res.send("Simple Server Running");
