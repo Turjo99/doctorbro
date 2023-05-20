@@ -37,6 +37,51 @@ function verifyJWT(req, res, next) {
   });
 }
 
+async function run() {
+  try {
+    const appointmentOptionCollection = client
+      .db("doctorsPortal")
+      .collection("appointmentOptions");
+    const bookingsCollection = client.db("doctorsPortal").collection("booking");
+    const usersCollection = client.db("doctorsPortal").collection("users");
+    const doctorsCollection = client.db("doctorsPortal").collection("doctors");
+    const paymentsCollection = client
+      .db("doctorsPortal")
+      .collection("payments");
+    app.get("/appointmentOption", async (req, res) => {
+      const query = {};
+      const date = req.query.date;
+ 
+      const options = await appointmentOptionCollection.find(query).toArray();
+ 
+      // get the bookings of the provided date
+      const bookingQuery = { appointmentDate: date };
+      const alreadyBooked = await bookingsCollection
+        .find(bookingQuery)
+        .toArray();
+ 
+      // code carefully :D
+      options.forEach((option) => {
+        const optionBooked = alreadyBooked.filter(
+          (book) => book.treatment === option.name
+        );
+        const bookedSlots = optionBooked.map((book) => book.slot);
+ 
+        const remainingSlots = option.slots.filter(
+          (slot) => !bookedSlots.includes(slot)
+        );
+        option.slots = remainingSlots;
+      });
+      res.send(options);
+    });
+    
+    
+  } finally {
+  }
+}
+
+
+
 app.get("/", (req, res) => {
   res.send("Simple Server Running");
 });
